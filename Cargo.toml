@@ -9,6 +9,7 @@ edition = "2021"
 rust-version = "1.99"
 resolver = "3"           # MSRV-aware: pick crate versions that build on the pinned toolchain
 authors = ["Sandesh Ghimire <sandesh@soccentric.com>"]
+license = "MIT"
 publish = false
 
 [dependencies]
