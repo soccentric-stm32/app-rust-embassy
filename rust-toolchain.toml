@@ -1,0 +1,6 @@
+# Pinned toolchain (RCON-002); must match RUST_VERSION in docker/Dockerfile.
+[toolchain]
+channel = "1.99.1"
+targets = ["thumbv7em-none-eabihf"]
+profile = "minimal"
+components = ["clippy", "rustfmt"]

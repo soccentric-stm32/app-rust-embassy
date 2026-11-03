@@ -1,0 +1,32 @@
+# Cargo.toml - Rust (Embassy) demo application, NUCLEO-F767ZI
+# Author: Sandesh Ghimire <sandesh@soccentric.com>
+# SRS:    SRS-RUST-F767
+
+[package]
+name = "rust-app"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.99"
+resolver = "3"           # MSRV-aware: pick crate versions that build on the pinned toolchain
+authors = ["Sandesh Ghimire <sandesh@soccentric.com>"]
+publish = false
+
+[dependencies]
+# dual-bank: the product configuration of the bootloader (nDBANK = 0).
+embassy-stm32 = { version = "0.6", features = ["stm32f767zi", "dual-bank", "time-driver-tim2", "exti"] }
+embassy-executor = { version = "0.10", features = ["platform-cortex-m", "executor-thread"] }
+embassy-time = "0.5"
+cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7.5"
+
+# RSAFE-004
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+debug = 2
+
+[profile.dev]
+opt-level = 1
+panic = "abort"
