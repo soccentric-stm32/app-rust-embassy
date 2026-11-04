@@ -14,8 +14,8 @@
 #   make rebuild        clean, then build
 #   make lint           cargo clippy -D warnings (RGEN-007)
 #   make fmt            cargo fmt
-#   make flash          build, then flash build/rust-app.elf, verify and reset
-#   make erase          erase the whole flash
+#   make flash          build, then upload build/rust-app.img through BOOT
+#   make erase-all      erase the whole flash (asks for confirmation)
 #   make reset          reset the board
 #   make debug          build, flash, then GDB halted at reset
 #   make gdbserver      OpenOCD GDB server on :3333
@@ -26,14 +26,18 @@
 #   make help           show this help
 #
 
-ELF   := build/rust-app.elf
-DEV   := scripts/docker-dev.sh
-CARGO := $(DEV) run env CARGO_HOME=/work/.cargo-home cargo
+ELF      := build/rust-app.elf
+IMAGE    := build/rust-app.img
+DEV      := scripts/docker-dev.sh
+CARGO    := $(DEV) run env CARGO_HOME=/work/.cargo-home cargo
+BOOTCTL  ?= ../soccentric-stm32-bootloader/tools/bootctl.py
+PORT     ?=
+PYTHON   ?= python3
 
 .DEFAULT_GOAL := build
 
-.PHONY: all build clean rebuild lint fmt flash erase reset debug gdbserver \
-        serial probe size image help
+.PHONY: all build clean rebuild lint fmt flash erase-all reset debug \
+        gdbserver serial probe size image help
 
 all: build
 
@@ -52,10 +56,17 @@ lint:
 fmt:
 	$(CARGO) fmt
 
+# A-6: never program the raw ELF into a slot. BOOT only starts an image
+# that has its 256-byte header, metadata and records, which bootctl writes.
 flash: build
-	$(DEV) flash $(ELF)
+	@test -f $(IMAGE) || { echo "error: $(IMAGE) not found, run make build"; exit 1; }
+	@test -f $(BOOTCTL) || { echo "error: $(BOOTCTL) not found; set BOOTCTL=/path/to/bootctl.py"; exit 1; }
+	$(PYTHON) $(BOOTCTL) $(if $(PORT),--port $(PORT),) update $(IMAGE) --activate
 
-erase:
+erase-all:
+	@echo "WARNING: this erases the whole flash: BOOT, both metadata sectors"
+	@echo "         and both application slots."
+	@printf "Type 'yes' to continue: " && read answer && [ "$$answer" = "yes" ]
 	$(DEV) erase
 
 reset:

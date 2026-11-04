@@ -17,11 +17,12 @@ Everything runs in the container through `scripts/docker-dev.sh`:
 ```bash
 scripts/docker-dev.sh build   # build the image once (and the stm32-dev base if missing)
 scripts/build.sh              # build inside the container
-make flash                    # flash build/rust-app.elf over SWD, verify, reset
+make flash                    # upload build/rust-app.img through BOOT (bootctl)
+make erase-all                # erase BOOT + slots (asks for confirmation)
 make help                     # all targets
 ```
 
-Outputs in `build/`: `rust-app.elf`, `rust-app.bin`, `rust-app.hex` and `rust-app.img` (256-byte BOOT header + binary). The image is linked at `0x0800C000` (bootloader slot) and starts only through the bootloader. Crate versions are locked in `Cargo.lock`; the crate cache is kept in `.cargo-home/`.
+Outputs in `build/`: `rust-app.elf`, `rust-app.bin`, `rust-app.hex` and `rust-app.img` (256-byte BOOT header + binary). The image is linked at `0x0800C000` (bootloader slot) and starts only through the bootloader. `make flash` uploads the `.img` with `bootctl.py update --activate`; never program the raw `.elf`/`.bin` into a slot, because BOOT requires the header and metadata records. Point `BOOTCTL` or `PORT` elsewhere if the defaults do not fit. Crate versions are locked in `Cargo.lock`; the crate cache is kept in `.cargo-home/`.
 
 ## What runs
 
