@@ -17,7 +17,7 @@ use crate::ipc::{self, ButtonEvent, LedCommand, StatusSnapshot};
 
 const PAYLOAD_MAX: usize = 1024;
 const BAUD_REVERT_MS: u64 = 5000;
-const IDLE_CHECKIN_MS: u64 = 1000;
+const IDLE_CHECKIN_MS: u64 = 500;
 
 #[derive(Clone, Copy)]
 pub struct BootInfo {

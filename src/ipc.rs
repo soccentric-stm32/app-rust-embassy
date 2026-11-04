@@ -3,9 +3,9 @@
 // Author: Sandesh Ghimire <sandesh@soccentric.com>
 // SRS:    RRT-003, RRT-004; DRT-011
 
+use core::sync::atomic::{AtomicU32, Ordering};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::channel::Channel;
-use embassy_sync::signal::Signal;
 use embassy_sync::watch::Watch;
 
 pub const TASK_LED: usize = 0;
@@ -81,14 +81,21 @@ pub struct ButtonEvent {
 
 pub static BUTTON_EVENTS: Channel<CriticalSectionRawMutex, ButtonEvent, 4> = Channel::new();
 
-static CHECKINS: [Signal<CriticalSectionRawMutex, ()>; 4] =
-    [Signal::new(), Signal::new(), Signal::new(), Signal::new()];
+// One counter per task.  A Signal would collapse several check-ins between
+// two health polls into one and make the 5 s pass depend on exact timing.
+static CHECKINS: [AtomicU32; 4] = [
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+];
 
 /// Called at least once per loop by each task (RRT-004).
 pub fn check_in(task: usize) {
-    CHECKINS[task].signal(());
+    CHECKINS[task].fetch_add(1, Ordering::Relaxed);
 }
 
-pub fn take_check_in(task: usize) -> bool {
-    CHECKINS[task].try_take().is_some()
+/// Return and reset the number of check-ins since the last call.
+pub fn take_check_in(task: usize) -> u32 {
+    CHECKINS[task].swap(0, Ordering::Relaxed)
 }

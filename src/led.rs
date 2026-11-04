@@ -210,8 +210,9 @@ pub async fn task(
                     });
                 }
                 LedCommand::ClearFault => {
+                    // LED-005: health_failed is separate; a pending slot
+                    // that failed its health check keeps blinking LD3.
                     fault_active = false;
-                    health_failed = false;
                 }
                 LedCommand::HealthFailed => {
                     health_failed = true;

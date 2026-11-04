@@ -72,14 +72,14 @@ pub async fn task(
         // Health is a task too: its own check-in is the loop itself.
         ipc::check_in(ipc::TASK_HEALTH);
 
+        let now = Instant::now();
         for task in 0..4 {
-            while ipc::take_check_in(task) {
-                counts[task] = counts[task].saturating_add(1);
-                last_seen[task] = Instant::now();
+            let new_checks = ipc::take_check_in(task);
+            if new_checks > 0 {
+                counts[task] = counts[task].saturating_add(new_checks);
+                last_seen[task] = now;
             }
         }
-
-        let now = Instant::now();
         let mut missed = false;
         for seen in &last_seen[..3] {
             if now.duration_since(*seen).as_millis() > CHECKIN_TIMEOUT {
