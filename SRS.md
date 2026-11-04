@@ -234,7 +234,7 @@ RDEMO shall meet [BOOT] §11 APP-001…APP-007, as [DEMO] DBT-001…DBT-006:
 
 | ID | Item | Status |
 |---|---|---|
-| OPEN-R01 | Confirm the `flatbuffers` crate builds `no_std` without an allocator for building messages, or choose a fixed-buffer builder / alternative. | Open |
+| OPEN-R01 | Confirm the `flatbuffers` crate builds `no_std` without an allocator for building messages, or choose a fixed-buffer builder / alternative. | **Closed for v0.1**: fixed-buffer codec in `src/hwlink/fb.rs`, verified against `flatc --python`. |
 | OPEN-R02 | Pin the Embassy crate versions that support `stm32f767zi` with the pinned Rust version. | **Closed**: Rust 1.99.1, `embassy-stm32` 0.6.0, `embassy-executor` 0.10.0, `embassy-time` 0.5.1, locked in `Cargo.lock`. |
 | OPEN-R03 | Measure whether a single thread-mode executor meets the health and comms timing, or whether an interrupt executor is needed (RRT-002). | Open |
 | OPEN-R04 | Decide whether to also support `probe-rs` for flashing and RTT logging, besides OpenOCD. | Open |

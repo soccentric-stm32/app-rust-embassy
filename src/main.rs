@@ -3,53 +3,127 @@
 // Author:  Sandesh Ghimire <sandesh@soccentric.com>
 // Date:    2026-11-03
 // Target:  NUCLEO-F767ZI (STM32F767ZIT6), started by BOOT from slot A or B
-// SRS:     RBT-001, RBT-002, RGEN-003, RGEN-004, RGEN-005, RFN-001 (LED-002)
+// SRS:     SRS-RUST-F767, SRS-DEMO-F767
 //
-// Implemented so far: VTOR, 216 MHz clock tree, caches, the heartbeat task
-// on LD1, and the panic / HardFault paths. Still to come, section by
-// section: health (IWDG + CONFIRMED), comms (USART3 + HWLINK), button,
-// the hand-over record and the image file.
+// Four Embassy tasks: health, comms, button and led (RRT-002).  The bootloader
+// contract is handled before the executor starts; the only flash write in the
+// application is the CONFIRMED record in boot.rs.
 
 #![no_std]
 #![no_main]
 #![deny(warnings)]
 
-use core::panic::PanicInfo;
+mod board;
+mod boot;
+mod build_info;
+mod button;
+mod comms;
+mod fault;
+mod health;
+mod hwlink;
+mod ipc;
+mod led;
 
-use cortex_m_rt::{exception, ExceptionFrame};
 use embassy_executor::Spawner;
+use embassy_stm32::exti::ExtiInput;
+use embassy_stm32::flash::{Blocking, Flash};
 use embassy_stm32::gpio::{Level, Output, Speed};
 use embassy_stm32::time::Hertz;
-use embassy_time::{Duration, Ticker, Timer};
+use embassy_stm32::usart::{BufferedUart, Config as UartConfig};
+use embassy_stm32::wdg::IndependentWatchdog;
+use static_cell::StaticCell;
 
-/// Bootloader slot start, where this image's vector table is linked (RBT-001).
-const SLOT_BASE: u32 = 0x0800_C000;
+embassy_stm32::bind_interrupts!(struct Irqs {
+    USART3 => embassy_stm32::usart::BufferedInterruptHandler<embassy_stm32::peripherals::USART3>;
+    EXTI15_10 => embassy_stm32::exti::InterruptHandler<embassy_stm32::interrupt::typelevel::EXTI15_10>;
+});
 
-// HEARTBEAT ([DEMO] Appendix A): two 50 ms flashes 200 ms apart in a 1 s period.
-const HEARTBEAT_PERIOD: Duration = Duration::from_millis(1000);
-const HEARTBEAT_FLASH: Duration = Duration::from_millis(50);
-const HEARTBEAT_GAP: Duration = Duration::from_millis(150);
+static UART_TX: StaticCell<[u8; 4096]> = StaticCell::new();
+static UART_RX: StaticCell<[u8; 4096]> = StaticCell::new();
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    // RBT-002: vector table first, before the HAL enables any interrupt.
-    // SAFETY: single write to VTOR during start-up; the table at SLOT_BASE is
-    // this image's own, placed there by memory.x.
-    unsafe { (*cortex_m::peripheral::SCB::PTR).vtor.write(SLOT_BASE) };
+    // RBT-002 / APP-004: vector table and watchdog before the HAL.
+    boot::set_vtor();
+    boot::pet_watchdog_raw();
+    let reset_cause = boot::take_reset_cause();
 
     let p = embassy_stm32::init(clock_config());
 
-    // RGEN-003: I-cache and D-cache on, as in the C demo. No DMA buffers yet;
-    // the comms task must place them in a non-cacheable region or clean the cache.
+    // RGEN-003: I-cache and D-cache on, as in the C demo.
     // SAFETY: nothing else owns the core peripherals in this application.
     let mut core = unsafe { cortex_m::Peripherals::steal() };
     core.SCB.enable_icache();
     core.SCB.enable_dcache(&mut core.CPUID);
+    core.SCB
+        .enable(cortex_m::peripheral::scb::Exception::MemoryManagement);
+    core.SCB
+        .enable(cortex_m::peripheral::scb::Exception::BusFault);
+    core.SCB
+        .enable(cortex_m::peripheral::scb::Exception::UsageFault);
+    cortex_m::asm::dsb();
+    cortex_m::asm::isb();
+
+    // RRT-005: paint the unused stack before the executor starts so health
+    // can report a real high-water mark in Status.
+    fault::paint_stack();
+
+    let handover = boot::read_handover();
+    let fault_at_start = fault::last();
+    let initial_fault = fault_at_start.is_some() || boot::reset_was_watchdog(reset_cause);
+    ipc::STATUS.sender().send_modify(|s| {
+        if let Some(s) = s {
+            s.fault_active = initial_fault;
+        }
+    });
+
+    let mut wdg = IndependentWatchdog::new(p.IWDG, 4_000_000);
+    wdg.unleash();
+    wdg.pet();
+
+    let flash: Flash<'static, Blocking> = Flash::new_blocking(p.FLASH);
+
+    let mut uart_config = UartConfig::default();
+    uart_config.baudrate = 115_200;
+    uart_config.eager_reads = Some(1);
+    let uart = match BufferedUart::new(
+        p.USART3,
+        p.PD9,
+        p.PD8,
+        UART_TX.init([0u8; 4096]),
+        UART_RX.init([0u8; 4096]),
+        Irqs,
+        uart_config,
+    ) {
+        Ok(uart) => uart,
+        Err(_) => fault::fatal(),
+    };
 
     let led1 = Output::new(p.PB0, Level::Low, Speed::Low);
-    match heartbeat(led1) {
+    let led2 = Output::new(p.PB7, Level::Low, Speed::Low);
+    let led3 = Output::new(p.PB14, Level::Low, Speed::Low);
+    let btn = ExtiInput::new(p.PC13, p.EXTI13, embassy_stm32::gpio::Pull::Down, Irqs);
+
+    let info = comms::BootInfo {
+        reset_cause,
+        handover,
+    };
+
+    match led::task(led1, led2, led3, initial_fault) {
         Ok(task) => spawner.spawn(task),
-        Err(_) => fatal(), // task pool exhausted: a programming error
+        Err(_) => fault::fatal(),
+    }
+    match button::task(btn) {
+        Ok(task) => spawner.spawn(task),
+        Err(_) => fault::fatal(),
+    }
+    match health::task(wdg, flash, handover, fault_at_start) {
+        Ok(task) => spawner.spawn(task),
+        Err(_) => fault::fatal(),
+    }
+    match comms::task(uart, info) {
+        Ok(task) => spawner.spawn(task),
+        Err(_) => fault::fatal(),
     }
 }
 
@@ -76,55 +150,4 @@ fn clock_config() -> embassy_stm32::Config {
     config.rcc.apb2_pre = APBPrescaler::DIV2;
     config.rcc.sys = Sysclk::PLL1_P;
     config
-}
-
-/// LED-002: default HEARTBEAT pattern on LD1, anchored to a 1 s ticker (LED-006).
-#[embassy_executor::task]
-async fn heartbeat(mut led: Output<'static>) {
-    let mut ticker = Ticker::every(HEARTBEAT_PERIOD);
-    loop {
-        led.set_high();
-        Timer::after(HEARTBEAT_FLASH).await;
-        led.set_low();
-        Timer::after(HEARTBEAT_GAP).await;
-        led.set_high();
-        Timer::after(HEARTBEAT_FLASH).await;
-        led.set_low();
-        ticker.next().await;
-    }
-}
-
-// ---------------------------------------------------------------- fault paths
-
-const RCC_AHB1ENR: *mut u32 = 0x4002_3830 as *mut u32;
-const GPIOB_MODER: *mut u32 = 0x4002_0400 as *mut u32;
-const GPIOB_BSRR: *mut u32 = 0x4002_0418 as *mut u32;
-const LD3_PIN: u32 = 14;
-
-/// LD3 on for about 2 s, then reset. Register-level so it works from any
-/// context, including before the HAL is up (RGEN-004/005).
-fn fatal() -> ! {
-    cortex_m::interrupt::disable();
-    // SAFETY: fixed RCC/GPIOB register addresses of the STM32F767 (RM0410);
-    // interrupts are off, so nothing else touches them concurrently.
-    unsafe {
-        RCC_AHB1ENR.write_volatile(RCC_AHB1ENR.read_volatile() | (1 << 1)); // GPIOBEN
-        let moder = GPIOB_MODER.read_volatile() & !(0b11 << (LD3_PIN * 2));
-        GPIOB_MODER.write_volatile(moder | (0b01 << (LD3_PIN * 2)));
-        GPIOB_BSRR.write_volatile(1 << LD3_PIN);
-    }
-    // Roughly 2 s at 216 MHz; exact timing does not matter here.
-    cortex_m::asm::delay(432_000_000);
-    cortex_m::peripheral::SCB::sys_reset();
-}
-
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    // RGEN-004: saving the location to a no-init area comes with the comms task.
-    fatal()
-}
-
-#[exception]
-unsafe fn HardFault(_frame: &ExceptionFrame) -> ! {
-    fatal()
 }

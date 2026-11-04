@@ -7,7 +7,7 @@ The demo application of the NUCLEO-F767ZI system written in Rust on the Embassy 
 | Requirements | [SRS.md](SRS.md) — SRS-RUST-F767 (v0.1 draft) |
 | Functional baseline | [SRS-DEMO-F767](https://github.com/soccentric-stm32/soccentric-stm32-application/blob/HEAD/SRS.md) — same behaviour as the C FreeRTOS demo |
 | Board | NUCLEO-F767ZI — see [Hardware.md](https://github.com/soccentric-stm32/soccentric-stm32-validation-firmware/blob/HEAD/Hardware.md) |
-| Status | Skeleton: VTOR, 216 MHz clock, caches, heartbeat task on LD1, panic/HardFault paths. Comms, button, health and the image file still to come. |
+| Status | Feature complete: VTOR, 216 MHz clock, caches, LD1/LD2/LD3 patterns, B1 short/long press, USART3 HWLINK (COBS, CRC32, fixed-buffer FlatBuffers), health/IWDG/CONFIRMED, fault record and BOOT image file. |
 | Build environment | [docker/README.md](docker/README.md): `stm32-dev-rust` = the shared `stm32-dev` image + Rust 1.99.1 (`thumbv7em-none-eabihf`, clippy, rustfmt) |
 
 ## Build and flash
@@ -21,7 +21,32 @@ make flash                    # flash build/rust-app.elf over SWD, verify, reset
 make help                     # all targets
 ```
 
-Outputs in `build/`: `rust-app.elf`, `rust-app.bin`, `rust-app.hex`. The image is linked at `0x0800C000` (bootloader slot) and starts only through the bootloader. Crate versions are locked in `Cargo.lock`; the crate cache is kept in `.cargo-home/`.
+Outputs in `build/`: `rust-app.elf`, `rust-app.bin`, `rust-app.hex` and `rust-app.img` (256-byte BOOT header + binary). The image is linked at `0x0800C000` (bootloader slot) and starts only through the bootloader. Crate versions are locked in `Cargo.lock`; the crate cache is kept in `.cargo-home/`.
+
+## What runs
+
+| Task | Job |
+|---|---|
+| `health` | IWDG refresh, 2 s task check-in supervision, 5–10 s health check and the only flash write (`CONFIRMED` at `0x08008140`) |
+| `comms` | USART3 115200/921600 HWLINK: `Hello`, `Ping`, `GetStatus`, `SetLed`, `SetLedAll`, `ClearFault`, `SetBaud`, `Reset`, `EnterBootloader`; unsolicited `ButtonEvent` |
+| `button` | PC13 EXTI, 30 ms debounce, short press cycles patterns, long press restores `HEARTBEAT` |
+| `led` | LD1/LD2 Appendix A patterns (`OFF`, `ON`, `BLINK`, `HEARTBEAT`, `FAST`, `CHASE`, `MORSE_SOS`), LD3 reserved for faults/health failure |
+
+`protocol/hwlink.fbs` is the schema. `src/hwlink/fb.rs` is a fixed-buffer
+FlatBuffers codec because the upstream Rust runtime needs an allocator
+(OPEN-R01); the wire format is verified against `flatc --python`. `tools/mkimage.py`
+wraps the binary in the BOOT image header used by `build/rust-app.img`.
+
+## Starting a new application
+
+1. Rename the package in `Cargo.toml` and the `name` field in `tools/mkimage.py`.
+2. Keep `memory.x` at `0x0800C000` and `SCB.VTOR` in `boot::set_vtor()`.
+3. Keep the IWDG pet at the top of `main` and let `health` own the refresh.
+4. Add tasks with `#[embassy_executor::task]`, give them static channels in
+   `src/ipc.rs`, and call `ipc::check_in()` at least once per second.
+5. Extend `protocol/hwlink.fbs` and `src/hwlink/mod.rs` together, adding fields
+   only at the end (LINK-013).
+6. Rebuild and flash; `scripts/build.sh` also refreshes `build/rust-app.img`.
 
 ## Related projects
 

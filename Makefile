@@ -9,7 +9,7 @@
 # C projects.
 #
 #   make                build the firmware (same as make build)
-#   make build          cargo build --release, then .elf/.bin/.hex in build/
+#   make build          cargo build --release, then .elf/.bin/.hex/.img in build/
 #   make clean          remove build/ and target/
 #   make rebuild        clean, then build
 #   make lint           cargo clippy -D warnings (RGEN-007)
