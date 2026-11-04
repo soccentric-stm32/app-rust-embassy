@@ -19,7 +19,7 @@ there. It adds Rust 1.99.1 with the `thumbv7em-none-eabihf` target, `clippy` and
 `scripts/docker-dev.sh build` builds the base image first if it is missing,
 then this one. The full description of the base image is in the validation
 firmware's
-[docker/README.md](https://github.com/soccentric-stm32/soccentric-stm32-validation-firmware/blob/HEAD/docker/README.md).
+[docker/README.md](https://github.com/soccentric-stm32/validation-firmware/blob/HEAD/docker/README.md).
 
 | Variable | Default |
 |---|---|

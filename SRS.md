@@ -7,7 +7,7 @@
 | **Author** | Sandesh Ghimire <sandesh@soccentric.com> |
 | **Date** | 2026-11-03 |
 | **Status** | Draft for review |
-| **Hardware** | NUCLEO-F767ZI, STM32F767ZIT6 rev Z (see [Hardware.md](https://github.com/soccentric-stm32/soccentric-stm32-validation-firmware/blob/HEAD/Hardware.md)) |
+| **Hardware** | NUCLEO-F767ZI, STM32F767ZIT6 rev Z (see [Hardware.md](https://github.com/soccentric-stm32/validation-firmware/blob/HEAD/Hardware.md)) |
 | **Software base** | Rust 1.99.1 (`thumbv7em-none-eabihf`), Embassy (`embassy-stm32` 0.6, `embassy-executor` 0.10, `embassy-time` 0.5), `cortex-m-rt` 0.7 |
 
 ---
@@ -72,11 +72,11 @@ peripherals.
 
 | ID | Document |
 |---|---|
-| [DEMO] | [soccentric-stm32-application/SRS.md](https://github.com/soccentric-stm32/soccentric-stm32-application/blob/HEAD/SRS.md) — SRS-DEMO-F767 |
-| [BOOT] | [soccentric-stm32-bootloader/SRS.md](https://github.com/soccentric-stm32/soccentric-stm32-bootloader/blob/HEAD/SRS.md) — SRS-BOOT-F767 |
-| [GUI] | [soccentric-stm32-validation-gui/SRS.md](https://github.com/soccentric-stm32/soccentric-stm32-validation-gui/blob/HEAD/SRS.md) — SRS-GUI-F767 |
+| [DEMO] | [app-c-freertos/SRS.md](https://github.com/soccentric-stm32/app-c-freertos/blob/HEAD/SRS.md) — SRS-DEMO-F767 |
+| [BOOT] | [bootloader/SRS.md](https://github.com/soccentric-stm32/bootloader/blob/HEAD/SRS.md) — SRS-BOOT-F767 |
+| [GUI] | [validation-gui/SRS.md](https://github.com/soccentric-stm32/validation-gui/blob/HEAD/SRS.md) — SRS-GUI-F767 |
 | [LINK] | [GUI] Appendix A — HWLINK protocol (normative) |
-| [ZDEMO] | [soccentric-stm32-zephyr-application/SRS.md](https://github.com/soccentric-stm32/soccentric-stm32-zephyr-application/blob/HEAD/SRS.md) — SRS-ZEPHYR-F767 |
+| [ZDEMO] | [app-c-zephyr/SRS.md](https://github.com/soccentric-stm32/app-c-zephyr/blob/HEAD/SRS.md) — SRS-ZEPHYR-F767 |
 | [EMB] | Embassy documentation and `embassy-stm32` STM32F7 support |
 | [RM0410] | ST, STM32F76xxx/F77xxx reference manual |
 

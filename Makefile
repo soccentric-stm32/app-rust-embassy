@@ -30,7 +30,7 @@ ELF      := build/rust-app.elf
 IMAGE    := build/rust-app.img
 DEV      := scripts/docker-dev.sh
 CARGO    := $(DEV) run env CARGO_HOME=/work/.cargo-home cargo
-BOOTCTL  ?= ../soccentric-stm32-bootloader/tools/bootctl.py
+BOOTCTL  ?= ../bootloader/tools/bootctl.py
 PORT     ?=
 PYTHON   ?= python3
 
