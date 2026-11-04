@@ -64,6 +64,13 @@ async fn main(spawner: Spawner) {
         .enable(cortex_m::peripheral::scb::Exception::BusFault);
     core.SCB
         .enable(cortex_m::peripheral::scb::Exception::UsageFault);
+    // RGEN-003: enable the flash prefetch and ART accelerator; embassy
+    // leaves both off after the clock switch.
+    const FLASH_ACR: *mut u32 = 0x4002_3C00 as *mut u32;
+    // SAFETY: fixed F7 FLASH_ACR register, configured once at start-up.
+    unsafe {
+        FLASH_ACR.write_volatile(FLASH_ACR.read_volatile() | (1 << 8) | (1 << 9));
+    }
     cortex_m::asm::dsb();
     cortex_m::asm::isb();
 
