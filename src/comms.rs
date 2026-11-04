@@ -344,6 +344,15 @@ async fn handle_frame(
         return;
     }
 
+    // A new host session starts at sequence 1; never answer its Hello from
+    // the replay cache.
+    if matches!(
+        hwlink::parse_request(f.payload),
+        Ok(hwlink::Request::Hello { .. })
+    ) {
+        last.len = 0;
+    }
+
     // LNK-008: repeated seq resends the last response without re-executing.
     if f.seq != 0 && last.seq == f.seq && last.len != 0 {
         let _ = tx.write_all(&last.buf[..last.len]).await;
@@ -359,14 +368,16 @@ async fn handle_frame(
         return;
     };
 
+    if tx.write_all(&tx_buf[..n]).await.is_err() {
+        return;
+    }
+
+    // Cache only after the frame was written: a failed TX must not make the
+    // host's retry replay a response for a request that never ran.
     last.seq = f.seq;
     last.len = n;
     last.buf[..n].copy_from_slice(&tx_buf[..n]);
     touch_baud(revert_at);
-
-    if tx.write_all(&tx_buf[..n]).await.is_err() {
-        return;
-    }
 
     match action {
         Action::None => {}
