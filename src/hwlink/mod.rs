@@ -12,7 +12,7 @@ pub mod frame;
 
 use fb::{Builder, Table, Value};
 
-pub const PROTOCOL_MINOR: u16 = 0;
+pub const PROTOCOL_MINOR: u16 = 1;
 pub const MAX_FRAME: usize = frame::MAX_DECODED;
 
 // Union tags: the order is the wire format (LINK-013).
