@@ -13,8 +13,10 @@ use std::{
 fn main() {
     let out = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR is set by cargo"));
     fs::copy("memory.x", out.join("memory.x")).expect("memory.x is readable");
+    fs::copy("noinit.x", out.join("noinit.x")).expect("noinit.x is readable");
     println!("cargo:rustc-link-search={}", out.display());
     println!("cargo:rerun-if-changed=memory.x");
+    println!("cargo:rerun-if-changed=noinit.x");
     println!("cargo:rerun-if-changed=Cargo.lock");
     println!("cargo:rerun-if-changed=.git/HEAD");
     println!("cargo:rerun-if-env-changed=SOURCE_DATE_EPOCH");

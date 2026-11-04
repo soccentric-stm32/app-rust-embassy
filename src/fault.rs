@@ -58,12 +58,13 @@ const EMPTY: FaultRecord = FaultRecord {
 };
 
 // No-init RAM: survives a system reset, is not cleared by cortex-m-rt.
-#[link_section = ".uninit.fault"]
+#[link_section = ".noinit.fault"]
 static mut RECORD: FaultRecord = EMPTY;
 
 pub fn last() -> Option<FaultRecord> {
     // SAFETY: reads the no-init record by volatile copy; the linker places it
-    // in .uninit and nothing else writes it except the fault paths.
+    // in the reserved no-init window and nothing else writes it except the
+    // fault paths.
     let record = unsafe { read_volatile(addr_of!(RECORD)) };
     if record.magic == MAGIC {
         Some(record)

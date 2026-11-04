@@ -42,6 +42,10 @@ wraps the binary in the BOOT image header used by `build/rust-app.img`.
 
 1. Rename the package in `Cargo.toml` and the `name` field in `tools/mkimage.py`.
 2. Keep `memory.x` at `0x0800C000` and `SCB.VTOR` in `boot::set_vtor()`.
+   RAM is DTCM only: 127 KB for data/bss and the stack, plus the reserved
+   1 KB no-init window at `0x2001FC00` (`noinit.x`) where the fault record
+   lives. The window is above BOOT's 60 KB budget and above the stack, so
+   the record survives every reset; keep `.noinit` out of `RAM`.
 3. Keep the IWDG pet at the top of `main` and let `health` own the refresh.
 4. Add tasks with `#[embassy_executor::task]`, give them static channels in
    `src/ipc.rs`, and call `ipc::check_in()` at least once per second.

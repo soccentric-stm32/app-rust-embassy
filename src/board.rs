@@ -5,6 +5,13 @@
 // SRS:    RBT-001..006, RFN-001..005, RSAFE-001..004
 
 pub const SLOT_BASE: u32 = 0x0800_C000;
+
+// A-9: reserved no-init window at the top of DTCM, shared with BOOT
+// (boot_layout.h BOOT_NOINIT_*).  memory.x and noinit.x place .noinit
+// here; the main stack starts below it.
+pub const NOINIT_ADDR: u32 = 0x2001_FC00;
+pub const NOINIT_SIZE: u32 = 0x0000_0400;
+pub const NOINIT_END: u32 = 0x2002_0000;
 pub const META_BASE: u32 = 0x0800_8000;
 pub const CONFIRMED_ADDR: u32 = META_BASE + 0x140;
 
