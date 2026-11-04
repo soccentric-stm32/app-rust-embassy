@@ -6,6 +6,7 @@
 use core::arch::naked_asm;
 use core::panic::PanicInfo;
 use core::ptr::{addr_of, addr_of_mut, read_volatile, write_volatile};
+use core::sync::atomic::{AtomicUsize, Ordering};
 
 use cortex_m::asm;
 use cortex_m_rt::{exception, ExceptionFrame};
@@ -245,7 +246,14 @@ pub fn paint_stack() {
     }
 }
 
+/// Lowest non-painted word found so far (0 = not scanned yet).
+static HWM: AtomicUsize = AtomicUsize::new(0);
+
 /// RRT-005: high-water mark of the main stack in bytes.
+///
+/// The first call scans up from the bottom once; later calls only scan the
+/// small region below the previous frontier, so the 200 ms health poll does
+/// not walk the whole ~100 KB stack every time.
 pub fn stack_high_water() -> u32 {
     let top = addr_of!(_stack_start) as usize;
     let bottom = addr_of!(_stack_end) as usize;
@@ -253,17 +261,36 @@ pub fn stack_high_water() -> u32 {
         return 0;
     }
 
-    let mut address = (bottom + 3) & !3;
-    while address + 4 <= top {
-        // SAFETY: reads the linker-provided stack area; the paint pattern was
-        // written by paint_stack and any non-painted word is live stack.
+    let frontier = HWM.load(Ordering::Relaxed);
+    if frontier == 0 {
+        let mut address = (bottom + 3) & !3;
+        while address + 4 <= top {
+            // SAFETY: reads the linker-provided stack area; the paint pattern
+            // was written by paint_stack and any non-painted word is live.
+            let word = unsafe { read_volatile(address as *const u32) };
+            if word != STACK_PAINT {
+                HWM.store(address, Ordering::Relaxed);
+                return top.saturating_sub(address) as u32;
+            }
+            address += 4;
+        }
+        HWM.store(top, Ordering::Relaxed);
+        return 0;
+    }
+
+    // Only the region below the previous frontier can have new usage: the
+    // stack grows down and the paint is never re-applied.
+    let mut address = frontier & !3;
+    while address >= bottom + 4 {
+        address -= 4;
+        // SAFETY: the address is inside the linker-provided stack area.
         let word = unsafe { read_volatile(address as *const u32) };
         if word != STACK_PAINT {
-            return top.saturating_sub(address) as u32;
+            HWM.store(address, Ordering::Relaxed);
+            break;
         }
-        address += 4;
     }
-    0
+    top.saturating_sub(HWM.load(Ordering::Relaxed)) as u32
 }
 
 // ---------------------------------------------------------------- fault LEDs
