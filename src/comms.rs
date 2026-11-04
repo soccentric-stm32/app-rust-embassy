@@ -11,6 +11,7 @@ use embedded_io_async::{Read, Write};
 use crate::boot::{self, Handover};
 use crate::build_info;
 use crate::fault::{self};
+use crate::identity;
 use crate::hwlink::frame::{self, FLAG_EVENT, FLAG_RESPONSE, MAX_DECODED, MAX_ENCODED};
 use crate::hwlink::{self, error, led, pattern, ParseError, Request};
 use crate::ipc::{self, ButtonEvent, LedCommand, StatusSnapshot};
@@ -85,6 +86,7 @@ fn reply(
     let len = match request {
         Request::Hello { .. } => {
             let (dev_id, rev_id) = boot::device_id();
+            let mut identity_buf = [0u8; 192];
             let hello = hwlink::HelloReply {
                 firmware_name: "rust-app",
                 version: build_info::VERSION_TEXT,
@@ -94,7 +96,7 @@ fn reply(
                 dev_id,
                 rev_id,
                 flash_mode: hwlink::flash_mode::DUAL_BANK,
-                detail: "Rust/Embassy DEMO",
+                detail: identity::detail(&mut identity_buf),
             };
             hwlink::hello_reply(out, &hello).map(|p| {
                 action = Action::Hello;
