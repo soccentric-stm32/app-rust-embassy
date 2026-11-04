@@ -20,8 +20,8 @@ mod button;
 mod comms;
 mod fault;
 mod health;
-mod identity;
 mod hwlink;
+mod identity;
 mod ipc;
 mod led;
 

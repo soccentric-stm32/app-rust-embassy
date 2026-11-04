@@ -11,9 +11,9 @@ use embedded_io_async::{Read, Write};
 use crate::boot::{self, Handover};
 use crate::build_info;
 use crate::fault::{self};
-use crate::identity;
 use crate::hwlink::frame::{self, FLAG_EVENT, FLAG_RESPONSE, MAX_DECODED, MAX_ENCODED};
 use crate::hwlink::{self, error, led, pattern, ParseError, Request};
+use crate::identity;
 use crate::ipc::{self, ButtonEvent, LedCommand, StatusSnapshot};
 
 const PAYLOAD_MAX: usize = 1024;

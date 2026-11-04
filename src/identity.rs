@@ -75,7 +75,7 @@ fn invalidate(address: u32) {
 
 fn uid_words() -> [u8; 12] {
     let mut uid = [0u8; 12];
-    for (index, slot) in uid.chunks_exact_mut(4).enumerate() {
+    for (index, slot) in uid.as_chunks_mut::<4>().0.iter_mut().enumerate() {
         // SAFETY: the UID is three read-only words at a fixed system address.
         let value = unsafe { core::ptr::read_volatile(board::UID_BASE.add(index)) };
         slot.copy_from_slice(&value.to_le_bytes());
@@ -94,7 +94,7 @@ fn parse(address: u32) -> Option<Identity<'static>> {
     let length = u32::from_le_bytes([header[8], header[9], header[10], header[11]]) as usize;
     let tlv_crc = u32::from_le_bytes([header[12], header[13], header[14], header[15]]);
     let header_crc = u32::from_le_bytes([header[28], header[29], header[30], header[31]]);
-    if format != FORMAT || length < 2 || length > MAX_TLV || crc32(&header[..28]) != header_crc {
+    if format != FORMAT || !(2..=MAX_TLV).contains(&length) || crc32(&header[..28]) != header_crc {
         return None;
     }
     if header[16..28] != uid_words() {
@@ -151,11 +151,7 @@ pub fn detail(buf: &mut [u8]) -> &str {
     let mut out = Buffer { data: buf, len: 0 };
     match identity {
         Some(identity) => {
-            let _ = write!(
-                out,
-                "PRV1 serial={};mac=",
-                text(identity.serial)
-            );
+            let _ = write!(out, "PRV1 serial={};mac=", text(identity.serial));
             if let Some(mac) = identity.mac {
                 let _ = write!(
                     out,
