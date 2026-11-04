@@ -47,6 +47,9 @@ async fn main(spawner: Spawner) {
     boot::set_vtor();
     boot::pet_watchdog_raw();
     let reset_cause = boot::take_reset_cause();
+    // APP-004: BOOT hands over through RTC_BKP0R..BKP3R. Read the record
+    // before the HAL, because embassy's RCC init may reset the backup domain.
+    let handover = boot::read_handover();
 
     let p = embassy_stm32::init(clock_config());
 
@@ -68,7 +71,6 @@ async fn main(spawner: Spawner) {
     // can report a real high-water mark in Status.
     fault::paint_stack();
 
-    let handover = boot::read_handover();
     let fault_at_start = fault::last();
     let initial_fault = fault_at_start.is_some() || boot::reset_was_watchdog(reset_cause);
     ipc::STATUS.sender().send_modify(|s| {
@@ -133,6 +135,11 @@ fn clock_config() -> embassy_stm32::Config {
     use embassy_stm32::rcc::*;
 
     let mut config = embassy_stm32::Config::default();
+    // APP-004: BOOT leaves BDCR at its reset value (RTCSEL=0, RTCEN=0).
+    // The embassy default (LSI + RTC enabled) does not match, so embassy
+    // would run a backup-domain reset and clear the BKP0R..BKP3R hand-over
+    // on the first boot after power-on. Keep the domain as BOOT left it.
+    config.rcc.ls = LsConfig::off();
     config.rcc.hse = Some(Hse {
         freq: Hertz(8_000_000),
         mode: HseMode::Bypass,
