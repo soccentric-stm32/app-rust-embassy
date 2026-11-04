@@ -1,6 +1,13 @@
 // Jenkinsfile - multi-stage CI for the STM32 Rust (Embassy) application.
 //
-//   Checkout -> Toolchain -> Build -> Lint -> Format -> Image -> Publish
+//   Checkout -> Toolchain -> Build -> Lint -> Format -> Image -> Package
+//   -> Release (tags) -> Archive
+//
+// Package builds dist/<repo>-<version>.tar.gz (outputs, manifest.json,
+// SHA256SUMS) on every run.  Release runs only for a tag v<version> and
+// publishes dist/ as a GitHub release with the Jenkins secret-text credential
+// github-release-token.  To release: bump the version, push, then push the
+// tag (git tag v0.2.0 && git push origin v0.2.0).
 //
 // Builds run through scripts/docker-dev.sh (RCON-001). The Rust image is
 // built on top of the shared stm32-dev base, so the Toolchain stage creates
@@ -114,15 +121,30 @@ PY
             }
         }
 
-        stage('Publish') {
+        stage('Package') {
             steps {
                 sh '''
-                    sha256sum build/rust-app.elf build/rust-app.bin build/rust-app.hex > build/SHA256SUMS
-                    sha256sum build/rust-app.img >> build/SHA256SUMS
-                    cat build/SHA256SUMS
+                    python3 ci/package.py --name app-rust-freertos --version "$(ci/version.sh)" \\
+                        build/rust-app.elf build/rust-app.bin build/rust-app.hex build/rust-app.img \\
+                        README.md LICENSE
                 '''
-                archiveArtifacts artifacts: 'build/rust-app.elf,build/rust-app.bin,build/rust-app.hex,build/rust-app.img,build/SHA256SUMS',
-                                 fingerprint: true
+            }
+        }
+
+        stage('Release') {
+            // Only for a tag build (Multibranch job with tag discovery).  The
+            // tag must be v<version>; ci/github_release.py checks it.
+            when { buildingTag() }
+            steps {
+                withCredentials([string(credentialsId: 'github-release-token', variable: 'GITHUB_TOKEN')]) {
+                    sh 'python3 ci/github_release.py --tag "${TAG_NAME}" --version "$(ci/version.sh)" dist/*'
+                }
+            }
+        }
+
+        stage('Archive') {
+            steps {
+                archiveArtifacts artifacts: 'dist/*', fingerprint: true
             }
         }
     }
