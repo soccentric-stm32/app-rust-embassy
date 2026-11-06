@@ -149,12 +149,18 @@ impl<'a> Builder<'a> {
         start
     }
 
+    /// Write the root header and move the finished buffer to the front of
+    /// `buf`.  Callers frame `buf[..len]`, so the bytes must start at index
+    /// 0.  All offsets are relative and the start is 8-aligned, so moving the
+    /// buffer keeps every field aligned.
     pub fn finish(mut self, root: usize) -> &'a [u8] {
-        let start = self.take(8, 4);
+        let start = self.take(8, 8);
         let rel = (root - start) as u32;
         self.buf[start..start + 4].copy_from_slice(&rel.to_le_bytes());
         self.buf[start + 4..start + 8].copy_from_slice(FILE_ID);
-        &self.buf[start..]
+        let len = self.buf.len() - start;
+        self.buf.copy_within(start.., 0);
+        &self.buf[..len]
     }
 }
 

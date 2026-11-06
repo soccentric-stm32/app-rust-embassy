@@ -123,6 +123,7 @@ pub async fn task(
                     && !new_fault;
 
                 if passed && boot::write_confirmed(&mut flash) {
+                    boot::mark_confirmed();
                     set_health(board::HEALTH_PASSED, false, checks);
                 } else {
                     failed = true;

@@ -3,6 +3,8 @@
 // Author: Sandesh Ghimire <sandesh@soccentric.com>
 // SRS:    RBT-002, RBT-004..006, RFN-004, RSAFE-002
 
+use core::sync::atomic::{AtomicBool, Ordering};
+
 use cortex_m::asm;
 use embassy_stm32::flash::{Blocking, Flash};
 
@@ -28,6 +30,25 @@ impl Handover {
     pub fn pending(&self) -> bool {
         self.trial_state == board::TRIAL_PENDING
     }
+
+    /// Trial state to report now.  The hand-over is decoded once at start-up,
+    /// so a slot that was on trial reports CONFIRMED once the health task has
+    /// written the CONFIRMED record.
+    pub fn current_trial_state(&self) -> u8 {
+        if self.pending() && CONFIRMED.load(Ordering::Acquire) {
+            board::TRIAL_CONFIRMED
+        } else {
+            self.trial_state
+        }
+    }
+}
+
+/// Set once the CONFIRMED record for the running slot is in flash.
+static CONFIRMED: AtomicBool = AtomicBool::new(false);
+
+/// Record that the running slot is no longer on trial.
+pub fn mark_confirmed() {
+    CONFIRMED.store(true, Ordering::Release);
 }
 
 /// RBT-002: keep the vector table at the slot even if BOOT left it elsewhere.

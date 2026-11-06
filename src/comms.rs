@@ -178,7 +178,7 @@ fn reply(
                 uid: boot::device_uid(),
                 uptime_ms: Instant::now().as_millis(),
                 slot: info.handover.slot,
-                trial: info.handover.trial_state,
+                trial: info.handover.current_trial_state(),
                 trial_count: info.handover.trial_count,
                 health: snap.health_state,
                 reset_cause: info.reset_cause,
