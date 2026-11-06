@@ -13,6 +13,9 @@
 #![no_main]
 #![deny(warnings)]
 
+#[macro_use]
+mod log;
+
 mod board;
 mod boot;
 mod build_info;
@@ -30,13 +33,14 @@ use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::flash::{Blocking, Flash};
 use embassy_stm32::gpio::{Level, Output, Speed};
 use embassy_stm32::time::Hertz;
-use embassy_stm32::usart::{BufferedUart, Config as UartConfig};
+use embassy_stm32::usart::{BufferedUart, Config as UartConfig, UartTx};
 use embassy_stm32::wdg::IndependentWatchdog;
 use static_cell::StaticCell;
 
 embassy_stm32::bind_interrupts!(struct Irqs {
     USART3 => embassy_stm32::usart::BufferedInterruptHandler<embassy_stm32::peripherals::USART3>;
     EXTI15_10 => embassy_stm32::exti::InterruptHandler<embassy_stm32::interrupt::typelevel::EXTI15_10>;
+    DMA2_STREAM6 => embassy_stm32::dma::InterruptHandler<embassy_stm32::peripherals::DMA2_CH6>;
 });
 
 static UART_TX: StaticCell<[u8; 4096]> = StaticCell::new();
@@ -79,7 +83,37 @@ async fn main(spawner: Spawner) {
     // can report a real high-water mark in Status.
     fault::paint_stack();
 
+    // RDBG-001: debug output on USART6 (PG14 = Arduino D1), TX only, DMA.
+    let mut log_config = UartConfig::default();
+    log_config.baudrate = 115_200;
+    match UartTx::new(p.USART6, p.PG14, p.DMA2_CH6, Irqs, log_config) {
+        Ok(tx) => match log::task(tx) {
+            Ok(task) => spawner.spawn(task),
+            Err(_) => fault::fatal(),
+        },
+        Err(_) => fault::fatal(),
+    }
+    log_info!(
+        "start v{} {}, slot {} {}, reset {}",
+        build_info::VERSION,
+        build_info::GIT_COMMIT,
+        match handover.slot {
+            board::SLOT_A => 'A',
+            board::SLOT_B => 'B',
+            _ => '?',
+        },
+        match handover.trial_state {
+            board::TRIAL_PENDING => "on trial",
+            board::TRIAL_CONFIRMED => "confirmed",
+            _ => "no hand-over",
+        },
+        boot::reset_cause_text(reset_cause)
+    );
+
     let fault_at_start = fault::last();
+    if fault_at_start.is_some() {
+        log_warn!("last fault recorded before this reset");
+    }
     let initial_fault = fault_at_start.is_some() || boot::reset_was_watchdog(reset_cause);
     ipc::STATUS.sender().send_modify(|s| {
         if let Some(s) = s {

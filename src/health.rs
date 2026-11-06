@@ -109,6 +109,7 @@ pub async fn task(
         if handover.pending() && !health_checked {
             if elapsed >= HEALTH_LIMIT_MS {
                 // HLT-002: the check must have passed by 10 s.
+                log_error!("health: no verdict by 10 s, trial fails");
                 health_checked = true;
                 failed = true;
                 set_health(board::HEALTH_FAILED, true, checks);
@@ -125,7 +126,9 @@ pub async fn task(
                 if passed && boot::write_confirmed(&mut flash) {
                     boot::mark_confirmed();
                     set_health(board::HEALTH_PASSED, false, checks);
+                    log_info!("health: passed, CONFIRMED written");
                 } else {
+                    log_error!("health: check failed, trial fails");
                     failed = true;
                     set_health(board::HEALTH_FAILED, true, checks);
                     let _ = ipc::LED_COMMANDS.try_send(LedCommand::HealthFailed);

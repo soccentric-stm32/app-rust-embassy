@@ -165,12 +165,16 @@ pub fn read_handover() -> Handover {
 
 /// RBT-005 / APP-006: leave a request for BOOT and reset.
 pub fn enter_bootloader() -> ! {
+    log_info!("HWLINK: EnterBootloader, resetting into BOOT");
+    crate::log::flush_blocking();
     write_backup(board::RTC_BKP1R, board::STAY_IN_BOOT_MAGIC);
     asm::dsb();
     cortex_m::peripheral::SCB::sys_reset()
 }
 
 pub fn reset() -> ! {
+    log_info!("HWLINK: Reset");
+    crate::log::flush_blocking();
     asm::dsb();
     cortex_m::peripheral::SCB::sys_reset()
 }

@@ -50,6 +50,7 @@ pub async fn task(mut btn: ExtiInput<'static, Async>) {
             } else {
                 let held = now.duration_since(press_start).as_millis();
                 if !long_sent && held < SHORT_MAX_MS {
+                    log_info!("button: short press, next LED pattern");
                     let _ = ipc::LED_COMMANDS.try_send(LedCommand::ButtonShort);
                 }
             }
@@ -59,6 +60,7 @@ pub async fn task(mut btn: ExtiInput<'static, Async>) {
         // released, exactly as the C demo's button task does.
         if pressed && !long_sent && now.duration_since(press_start).as_millis() >= LONG_MIN_MS {
             long_sent = true;
+            log_info!("button: long press, default LED patterns");
             let _ = ipc::LED_COMMANDS.try_send(LedCommand::ButtonLong);
         }
 

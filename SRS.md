@@ -186,7 +186,7 @@ RDEMO shall meet [BOOT] §11 APP-001…APP-007, as [DEMO] DBT-001…DBT-006:
 |---|---|---|
 | RSAFE-001 | RDEMO shall never unlock or write option bytes. | I |
 | RSAFE-002 | The flash write function shall accept only the `CONFIRMED` record address of the running slot (as [DEMO] DSAFE-002). | I, T |
-| RSAFE-003 | RDEMO shall drive only PB0, PB7, PB14, read PC13 and use PD8/PD9 (as [DEMO] DSAFE-003). | I |
+| RSAFE-003 | RDEMO shall drive only PB0, PB7, PB14, read PC13 and use PD8/PD9 and PG14 (USART6 debug TX, RDBG-001) (as [DEMO] DSAFE-003). | I |
 | RSAFE-004 | Integer overflow checks shall stay enabled in debug builds; release builds shall use `panic = "abort"`, `lto = true`, `codegen-units = 1`, `opt-level = "s"` unless measurement shows `3` is needed. | I |
 
 ---
@@ -200,6 +200,18 @@ RDEMO shall meet [BOOT] §11 APP-001…APP-007, as [DEMO] DBT-001…DBT-006:
 | RNFR-003 | **Reliability:** as [DEMO] DNFR-003 (24 h with the GUI polling every 100 ms). | T |
 | RNFR-004 | **Comparison:** a short report shall compare RDEMO with the C demo and the Zephyr demo: flash, RAM, start-up time, button-to-LED latency, HWLINK round-trip time and lines of code. | A |
 | RNFR-005 | **Template:** a README shall explain how to start a new Rust application from RDEMO. | I |
+
+### Debug output (USART6)
+
+USART3 carries HWLINK only.  Debug lines go to USART6 TX on PG14 (Arduino
+D1), 115200 8N1, in the format BOOT uses: `[<ms>] <TAG> <E|W|I|D> <text>` (milliseconds since reset, right-aligned to 7 digits, CR LF), tag `R-EMB`.
+
+| ID | Requirement | Method |
+|---|---|---|
+| RDBG-001 | RDEMO shall log start (version, commit, slot, trial state, reset cause), a recorded fault, the health verdict, button presses and HWLINK-requested resets, through `log_info!`/`log_warn!`/`log_error!` (src/log.rs). | D |
+| RDBG-002 | The macros shall format into a stack buffer (no allocation) and push the line into a 1 KB pipe without waiting; a log task shall drain it to USART6 with DMA (DMA2 stream 6), so no task waits on the UART. | I |
+| RDBG-003 | A line that does not fit in the pipe shall be dropped and counted. | I |
+| RDBG-004 | Before a deliberate reset RDEMO shall flush the pipe by polling USART6, bounded in time. | I |
 
 ---
 
