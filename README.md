@@ -1,4 +1,4 @@
-# app-rust-freertos
+# app-rust-embassy
 
 The NUCLEO-F767ZI demo application written in Rust on the Embassy async framework. It runs under the A/B bootloader from either slot and does exactly the same job as the C FreeRTOS demo: LED patterns, the user button, HWLINK communication with the desktop GUI, watchdog supervision and self-confirmation after a health check. It shows how a safe, allocation-free Rust application can live inside an existing C bootloader and toolchain ecosystem, and lets you compare Rust and C side by side on the same hardware.
 
@@ -17,7 +17,7 @@ The NUCLEO-F767ZI demo application written in Rust on the Embassy async framewor
 - Fault record in a reserved no-init RAM window that survives every reset
 - Unsolicited ButtonEvent messages
 - Crate versions locked in `Cargo.lock`
-- Produces a ready-to-flash bootloader image (`rust-app.img`)
+- Produces a ready-to-flash bootloader image (`embassy-app.img`)
 - Reproducible Docker build environment with the pinned Rust toolchain
 
 ## Build and run
@@ -25,7 +25,7 @@ The NUCLEO-F767ZI demo application written in Rust on the Embassy async framewor
 ```bash
 scripts/docker-dev.sh build   # build the stm32-dev-rust container image once
 scripts/build.sh              # build inside the container
-make flash                    # upload build/rust-app.img through the bootloader
+make flash                    # upload build/embassy-app.img through the bootloader
 make help                     # list all targets
 ```
 

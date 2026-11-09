@@ -93,7 +93,7 @@ pipeline {
             steps {
                 sh '''
                     make size
-                    python3 - build/rust-app.img <<'PY'
+                    python3 - build/embassy-app.img <<'PY'
 import struct
 import sys
 import zlib
@@ -124,8 +124,8 @@ PY
         stage('Package') {
             steps {
                 sh '''
-                    python3 ci/package.py --name app-rust-freertos --version "$(ci/version.sh)" \\
-                        build/rust-app.elf build/rust-app.bin build/rust-app.hex build/rust-app.img \\
+                    python3 ci/package.py --name app-rust-embassy --version "$(ci/version.sh)" \\
+                        build/embassy-app.elf build/embassy-app.bin build/embassy-app.hex build/embassy-app.img \\
                         README.md LICENSE
                 '''
             }

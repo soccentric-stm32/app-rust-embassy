@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""mkimage.py - wrap rust-app.bin in the BOOT image header.
+"""mkimage.py - wrap embassy-app.bin in the BOOT image header.
 
 Author: Sandesh Ghimire <sandesh@soccentric.com>
 SRS:    RGEN-001; BOOT BHOST-001, IMG-001..IMG-003
@@ -28,7 +28,7 @@ LOAD_ADDRESS = 0x0800C000
 SLOT_SIZE = 976 * 1024
 RAM_START = 0x20000000
 RAM_END = 0x20080000
-DEVICE_NAME = "rust-app"
+DEVICE_NAME = "embassy-app"
 
 
 def package_version() -> str:
@@ -70,7 +70,7 @@ def commit_bytes(text: str) -> bytes:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="make a BOOT image from rust-app.bin")
+    parser = argparse.ArgumentParser(description="make a BOOT image from embassy-app.bin")
     parser.add_argument("binary", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--version", default=None)

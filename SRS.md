@@ -118,7 +118,7 @@ As [DEMO] §2.4 (board provisioned for BOOT, LED and button pins, working VCP).
 
 | ID | Requirement | Method |
 |---|---|---|
-| RGEN-001 | The build shall produce `build/rust-app.elf`, `.bin`, `.hex` and the bootloader image file `rust-app.img` (via [BOOT] BHOST-001). | I |
+| RGEN-001 | The build shall produce `build/embassy-app.elf`, `.bin`, `.hex` and the bootloader image file `embassy-app.img` (via [BOOT] BHOST-001). | I |
 | RGEN-002 | RDEMO shall embed its crate version, git commit and build date (build script), and the same values shall go into the image header. | I, T |
 | RGEN-003 | RDEMO shall run the core at 216 MHz from the 8 MHz HSE bypass clock through the PLL (M = 8, N = 432, P = 2, Q = 9), APB1 /4, APB2 /2, with the flash latency, over-drive and caches as [DEMO] DGEN-003. | T |
 | RGEN-004 | The panic handler shall record the panic location in a no-init RAM area, show the fault pattern on LD3 and reset (as [DEMO] DGEN-004). Release builds shall not include panic message strings unless a build feature enables them. | T |
@@ -165,7 +165,7 @@ RDEMO shall meet [BOOT] §11 APP-001…APP-007, as [DEMO] DBT-001…DBT-006:
 | RFN-002 | **Button:** as [DEMO] BTN-001…BTN-004, using `embassy-stm32` `ExtiInput` on PC13 with 30 ms debounce in the `button` task. | T, D |
 | RFN-003 | **Communication:** as [DEMO] COM-001…COM-007 (messages of [DEMO] §8.1), using the `embassy-stm32` buffered or DMA UART on USART3. | T |
 | RFN-004 | **Health and confirmation:** as [DEMO] HLT-001…HLT-005, including the `fail-health` cargo feature (equivalent of `DEMO_FAIL_HEALTH`). | T |
-| RFN-005 | `HelloReply` shall report role `DEMO`, firmware name `rust-app` and the Rust and Embassy versions in its version text. | T |
+| RFN-005 | `HelloReply` shall report role `DEMO`, firmware name `embassy-app` and the Rust and Embassy versions in its version text. | T |
 
 ---
 

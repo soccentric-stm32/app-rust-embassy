@@ -1,4 +1,4 @@
-// rust-app - Embassy demo application entry point
+// embassy-app - Embassy demo application entry point
 //
 // Author:  Sandesh Ghimire <sandesh@soccentric.com>
 // Date:    2026-11-03

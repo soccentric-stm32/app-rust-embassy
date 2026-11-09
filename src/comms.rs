@@ -88,7 +88,7 @@ fn reply(
             let (dev_id, rev_id) = boot::device_id();
             let mut identity_buf = [0u8; 192];
             let hello = hwlink::HelloReply {
-                firmware_name: "rust-app",
+                firmware_name: "embassy-app",
                 version: build_info::VERSION_TEXT,
                 commit: build_info::GIT_COMMIT,
                 build_time: build_info::BUILD_TIME,
@@ -171,7 +171,7 @@ fn reply(
                 },
             ];
             let status = hwlink::Status {
-                firmware_name: "rust-app",
+                firmware_name: "embassy-app",
                 version: build_info::VERSION,
                 commit: build_info::GIT_COMMIT,
                 build_time: build_info::BUILD_TIME,

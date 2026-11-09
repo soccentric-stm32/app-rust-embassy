@@ -7,8 +7,8 @@
 # Usage:   scripts/build.sh            cargo build --release
 #          scripts/build.sh clean      remove build/ and target/ first
 #
-# Outputs: build/rust-app.elf, build/rust-app.bin, build/rust-app.hex,
-#          build/rust-app.img (BOOT image header + binary)
+# Outputs: build/embassy-app.elf, build/embassy-app.bin, build/embassy-app.hex,
+#          build/embassy-app.img (BOOT image header + binary)
 #
 # The crate cache lives in .cargo-home/ (git-ignored) so it survives between
 # container runs and belongs to the calling user.
@@ -36,8 +36,8 @@ export SOURCE_DATE_EPOCH="$STAMP"
 "$DEV" run bash -c '
     set -e
     mkdir -p build
-    cp target/thumbv7em-none-eabihf/release/rust-app build/rust-app.elf
-    arm-none-eabi-objcopy -O binary build/rust-app.elf build/rust-app.bin
-    arm-none-eabi-objcopy -O ihex   build/rust-app.elf build/rust-app.hex
-    arm-none-eabi-size build/rust-app.elf'
-"$DEV" run bash -c 'python3 tools/mkimage.py build/rust-app.bin build/rust-app.img --version "$1" --commit "$2" --timestamp "$3"' _ "$VERSION" "$COMMIT" "$STAMP"
+    cp target/thumbv7em-none-eabihf/release/embassy-app build/embassy-app.elf
+    arm-none-eabi-objcopy -O binary build/embassy-app.elf build/embassy-app.bin
+    arm-none-eabi-objcopy -O ihex   build/embassy-app.elf build/embassy-app.hex
+    arm-none-eabi-size build/embassy-app.elf'
+"$DEV" run bash -c 'python3 tools/mkimage.py build/embassy-app.bin build/embassy-app.img --version "$1" --commit "$2" --timestamp "$3"' _ "$VERSION" "$COMMIT" "$STAMP"

@@ -14,7 +14,7 @@
 #   make rebuild        clean, then build
 #   make lint           cargo clippy -D warnings (RGEN-007)
 #   make fmt            cargo fmt
-#   make flash          build, then upload build/rust-app.img through BOOT
+#   make flash          build, then upload build/embassy-app.img through BOOT
 #   make erase-all      erase the whole flash (asks for confirmation)
 #   make reset          reset the board
 #   make debug          build, flash, then GDB halted at reset
@@ -26,8 +26,8 @@
 #   make help           show this help
 #
 
-ELF      := build/rust-app.elf
-IMAGE    := build/rust-app.img
+ELF      := build/embassy-app.elf
+IMAGE    := build/embassy-app.img
 DEV      := scripts/docker-dev.sh
 CARGO    := $(DEV) run env CARGO_HOME=/work/.cargo-home cargo
 BOOTCTL  ?= ../bootloader/tools/bootctl.py
