@@ -2,6 +2,8 @@
 
 The NUCLEO-F767ZI demo application written in Rust on the Embassy async framework. It runs under the A/B bootloader from either slot and does exactly the same job as the C FreeRTOS demo: LED patterns, the user button, HWLINK communication with the desktop GUI, watchdog supervision and self-confirmation after a health check. It shows how a safe, allocation-free Rust application can live inside an existing C bootloader and toolchain ecosystem, and lets you compare Rust and C side by side on the same hardware.
 
+[![The Rust Embassy application starting on the board](https://raw.githubusercontent.com/soccentric-stm32/soccentric-stm32.github.io/main/assets/shots/term-rust-embassy.webp)](https://soccentric-stm32.github.io/#rust-embassy)
+
 ## Features
 
 - Pure Rust (`no_std`, no allocator) on the Embassy async executor
