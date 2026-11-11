@@ -30,7 +30,11 @@ ELF      := build/embassy-app.elf
 IMAGE    := build/embassy-app.img
 DEV      := scripts/docker-dev.sh
 CARGO    := $(DEV) run env CARGO_HOME=/work/.cargo-home cargo
-BOOTCTL  ?= ../bootloader/tools/bootctl.py
+BOOTCTL  ?= $(firstword $(wildcard ../bootloader/tools/bootctl.py ../../bootloader/bootloader/tools/bootctl.py) ../bootloader/tools/bootctl.py)
+BOOT_DIR   ?= $(patsubst %/tools/bootctl.py,%,$(BOOTCTL))
+SIGN_KEY   ?= $(BOOT_DIR)/keys/dev-signing-key.pem
+SECURITY_COUNTER ?= 1
+SIGNED     := $(IMAGE:.img=-signed.img)
 PORT     ?=
 PYTHON   ?= python3
 
@@ -61,7 +65,10 @@ fmt:
 flash: build
 	@test -f $(IMAGE) || { echo "error: $(IMAGE) not found, run make build"; exit 1; }
 	@test -f $(BOOTCTL) || { echo "error: $(BOOTCTL) not found; set BOOTCTL=/path/to/bootctl.py"; exit 1; }
-	$(PYTHON) $(BOOTCTL) $(if $(PORT),--port $(PORT),) update $(IMAGE) --activate
+	@test -f $(SIGN_KEY) || { echo "error: $(SIGN_KEY) not found; set SIGN_KEY=/path/to/key.pem"; exit 1; }
+	$(PYTHON) $(BOOT_DIR)/tools/mkimage.py --sign $(IMAGE) --key $(SIGN_KEY) \
+		--security-counter $(SECURITY_COUNTER) --output $(SIGNED)
+	$(PYTHON) $(BOOTCTL) $(if $(PORT),--port $(PORT),) update $(SIGNED) --activate
 
 erase-all:
 	@echo "WARNING: this erases the whole flash: BOOT, both metadata sectors"
