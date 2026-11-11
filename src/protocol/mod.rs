@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-// hwlink/mod.rs - HWLINK demo message set
+// protocol/mod.rs - HWLINK demo message set
 //
 // Author: Sandesh Ghimire <sandesh@soccentric.com>
 // SRS:    RFN-003, RFN-005, RLNK-001..004; LINK A.3

@@ -14,28 +14,23 @@
 #![deny(warnings)]
 
 #[macro_use]
-mod log;
+mod system;
 
+mod app;
 mod board;
-mod boot;
-mod build_info;
-mod button;
-mod comms;
-mod fault;
-mod health;
-mod hwlink;
-mod identity;
-mod ipc;
-mod led;
+mod protocol;
 
 use embassy_executor::Spawner;
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::flash::{Blocking, Flash};
 use embassy_stm32::gpio::{Level, Output, Speed};
-use embassy_stm32::time::Hertz;
 use embassy_stm32::usart::{BufferedUart, Config as UartConfig, UartTx};
 use embassy_stm32::wdg::IndependentWatchdog;
 use static_cell::StaticCell;
+
+use crate::app::{button, comms, health, led};
+use crate::board::{boot, clock::clock_config, fault};
+use crate::system::{build_info, ipc, log};
 
 embassy_stm32::bind_interrupts!(struct Irqs {
     USART3 => embassy_stm32::usart::BufferedInterruptHandler<embassy_stm32::peripherals::USART3>;
@@ -169,34 +164,4 @@ async fn main(spawner: Spawner) {
         Ok(task) => spawner.spawn(task),
         Err(_) => fault::fatal(),
     }
-}
-
-/// 216 MHz from the 8 MHz ST-LINK MCO in HSE bypass mode (RGEN-003):
-/// PLL M = 8, N = 432, P = 2, Q = 9; AHB /1, APB1 /4 (54 MHz), APB2 /2 (108 MHz).
-fn clock_config() -> embassy_stm32::Config {
-    use embassy_stm32::rcc::*;
-
-    let mut config = embassy_stm32::Config::default();
-    // APP-004: BOOT leaves BDCR at its reset value (RTCSEL=0, RTCEN=0).
-    // The embassy default (LSI + RTC enabled) does not match, so embassy
-    // would run a backup-domain reset and clear the BKP0R..BKP3R hand-over
-    // on the first boot after power-on. Keep the domain as BOOT left it.
-    config.rcc.ls = LsConfig::off();
-    config.rcc.hse = Some(Hse {
-        freq: Hertz(8_000_000),
-        mode: HseMode::Bypass,
-    });
-    config.rcc.pll_src = PllSource::HSE;
-    config.rcc.pll = Some(Pll {
-        prediv: PllPreDiv::DIV8,
-        mul: PllMul::MUL432,
-        divp: Some(PllPDiv::DIV2),
-        divq: Some(PllQDiv::DIV9),
-        divr: None,
-    });
-    config.rcc.ahb_pre = AHBPrescaler::DIV1;
-    config.rcc.apb1_pre = APBPrescaler::DIV4;
-    config.rcc.apb2_pre = APBPrescaler::DIV2;
-    config.rcc.sys = Sysclk::PLL1_P;
-    config
 }

@@ -12,7 +12,7 @@ use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::mode::Async;
 use embassy_time::{Duration, Instant, Timer};
 
-use crate::ipc::{self, LedCommand};
+use crate::system::ipc::{self, LedCommand};
 
 const DEBOUNCE_MS: u64 = 30;
 const SHORT_MAX_MS: u64 = 1000;
@@ -29,7 +29,7 @@ pub async fn task(mut btn: ExtiInput<'static, Async>) {
     let mut press_start = Instant::now();
     let mut long_sent = false;
     let mut last_checkin = Instant::now();
-    let mut report = crate::log::TaskReport::new(
+    let mut report = crate::system::log::TaskReport::new(
         2,
         "Button",
         "debounces B1, short press cycles the LED pattern, long press resets it",

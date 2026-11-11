@@ -8,3 +8,7 @@ build/
 
 # --- CI release bundle (ci/package.py) ---
 dist/
+
+# --- Python ---
+__pycache__/
+*.pyc

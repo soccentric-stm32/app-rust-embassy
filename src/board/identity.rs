@@ -12,7 +12,7 @@
 use core::fmt::Write;
 
 use crate::board;
-use crate::hwlink::frame::crc32;
+use crate::protocol::frame::crc32;
 
 const MAGIC: u32 = 0x3156_5250; // "PRV1" little-endian
 const FORMAT: u16 = 1;

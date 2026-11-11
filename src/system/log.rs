@@ -162,13 +162,13 @@ pub fn flush_blocking() {
 }
 
 macro_rules! log_error {
-    ($($arg:tt)*) => { $crate::log::write('E', format_args!($($arg)*)) };
+    ($($arg:tt)*) => { $crate::system::log::write('E', format_args!($($arg)*)) };
 }
 
 macro_rules! log_warn {
-    ($($arg:tt)*) => { $crate::log::write('W', format_args!($($arg)*)) };
+    ($($arg:tt)*) => { $crate::system::log::write('W', format_args!($($arg)*)) };
 }
 
 macro_rules! log_info {
-    ($($arg:tt)*) => { $crate::log::write('I', format_args!($($arg)*)) };
+    ($($arg:tt)*) => { $crate::system::log::write('I', format_args!($($arg)*)) };
 }

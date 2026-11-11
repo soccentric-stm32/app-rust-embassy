@@ -8,13 +8,13 @@ use embassy_stm32::usart::{BufferedUart, BufferedUartRx, BufferedUartTx};
 use embassy_time::{Duration, Instant, Timer};
 use embedded_io_async::{Read, Write};
 
-use crate::boot::{self, Handover};
-use crate::build_info;
-use crate::fault::{self};
-use crate::hwlink::frame::{self, FLAG_EVENT, FLAG_RESPONSE, MAX_DECODED, MAX_ENCODED};
-use crate::hwlink::{self, error, led, pattern, ParseError, Request};
-use crate::identity;
-use crate::ipc::{self, ButtonEvent, LedCommand, StatusSnapshot};
+use crate::board::boot::{self, Handover};
+use crate::board::fault::{self};
+use crate::board::identity;
+use crate::protocol::frame::{self, FLAG_EVENT, FLAG_RESPONSE, MAX_DECODED, MAX_ENCODED};
+use crate::protocol::{self, error, led, pattern, ParseError, Request};
+use crate::system::build_info;
+use crate::system::ipc::{self, ButtonEvent, LedCommand, StatusSnapshot};
 
 const PAYLOAD_MAX: usize = 1024;
 const BAUD_REVERT_MS: u64 = 5000;
@@ -69,7 +69,7 @@ fn touch_baud(revert_at: &mut Option<Instant>) {
 }
 
 fn build_nak(out: &mut [u8], seq: u16, code: u16, detail: &str) -> usize {
-    hwlink::nak(out, seq, code, detail)
+    protocol::nak(out, seq, code, detail)
         .map(|p| p.len())
         .unwrap_or(0)
 }
@@ -87,7 +87,7 @@ fn reply(
         Request::Hello { .. } => {
             let (dev_id, rev_id) = boot::device_id();
             let mut identity_buf = [0u8; 192];
-            let hello = hwlink::HelloReply {
+            let hello = protocol::HelloReply {
                 firmware_name: "embassy-app",
                 version: build_info::VERSION_TEXT,
                 commit: build_info::GIT_COMMIT,
@@ -95,15 +95,15 @@ fn reply(
                 uid: boot::device_uid(),
                 dev_id,
                 rev_id,
-                flash_mode: hwlink::flash_mode::DUAL_BANK,
+                flash_mode: protocol::flash_mode::DUAL_BANK,
                 detail: identity::detail(&mut identity_buf),
             };
-            hwlink::hello_reply(out, &hello).map(|p| {
+            protocol::hello_reply(out, &hello).map(|p| {
                 action = Action::Hello;
                 p.len()
             })
         }
-        Request::Ping => hwlink::pong(out, Instant::now().as_millis()).map(|p| p.len()),
+        Request::Ping => protocol::pong(out, Instant::now().as_millis()).map(|p| p.len()),
         Request::GetStatus => {
             let snap = status_rx.try_get().unwrap_or_else(StatusSnapshot::initial);
             let fault_record = fault::last();
@@ -116,7 +116,7 @@ fn reply(
                     n
                 })
                 .unwrap_or(0);
-            let active_fault = fault_record.as_ref().map(|f| hwlink::FaultInfoData {
+            let active_fault = fault_record.as_ref().map(|f| protocol::FaultInfoData {
                 present: true,
                 reason: fault::describe(f),
                 cfsr: f.cfsr,
@@ -130,47 +130,47 @@ fn reply(
                 line: f.line,
             });
             let leds = [
-                hwlink::LedStateData {
+                protocol::LedStateData {
                     pattern: snap.led1_pattern,
                     period_ms: snap.led1_period,
                 },
-                hwlink::LedStateData {
+                protocol::LedStateData {
                     pattern: snap.led2_pattern,
                     period_ms: snap.led2_period,
                 },
-                hwlink::LedStateData {
+                protocol::LedStateData {
                     pattern: snap.led3_pattern,
                     period_ms: snap.led3_period,
                 },
             ];
             let stack = snap.stack_high_water.min(u16::MAX as u32) as u16;
             let tasks = [
-                hwlink::TaskStatsData {
+                protocol::TaskStatsData {
                     name: "health",
                     priority: 5,
                     state: 1,
                     stack_high_water: stack,
                 },
-                hwlink::TaskStatsData {
+                protocol::TaskStatsData {
                     name: "comms",
                     priority: 4,
                     state: 1,
                     stack_high_water: stack,
                 },
-                hwlink::TaskStatsData {
+                protocol::TaskStatsData {
                     name: "button",
                     priority: 3,
                     state: 1,
                     stack_high_water: stack,
                 },
-                hwlink::TaskStatsData {
+                protocol::TaskStatsData {
                     name: "led",
                     priority: 2,
                     state: 1,
                     stack_high_water: stack,
                 },
             ];
-            let status = hwlink::Status {
+            let status = protocol::Status {
                 firmware_name: "embassy-app",
                 version: build_info::VERSION,
                 commit: build_info::GIT_COMMIT,
@@ -189,7 +189,7 @@ fn reply(
                 heap_free: 0,
                 heap_min_free: 0,
             };
-            hwlink::status(out, &status).map(|p| p.len())
+            protocol::status(out, &status).map(|p| p.len())
         }
         Request::SetLed {
             led: target,
@@ -220,10 +220,10 @@ fn reply(
                 } else {
                     ipc::STATUS.sender().send_modify(|v| {
                         if let Some(v) = v {
-                            crate::led::mirror_set(v, target, p, period_ms);
+                            crate::app::led::mirror_set(v, target, p, period_ms);
                         }
                     });
-                    hwlink::ack(out, seq).map(|r| r.len())
+                    protocol::ack(out, seq).map(|r| r.len())
                 }
             }
         }
@@ -248,29 +248,29 @@ fn reply(
                 } else {
                     ipc::STATUS.sender().send_modify(|v| {
                         if let Some(v) = v {
-                            crate::led::mirror_set_all(v, p, period_ms);
+                            crate::app::led::mirror_set_all(v, p, period_ms);
                         }
                     });
-                    hwlink::ack(out, seq).map(|r| r.len())
+                    protocol::ack(out, seq).map(|r| r.len())
                 }
             }
         }
         Request::ClearFault => {
             fault::clear();
             let _ = ipc::LED_COMMANDS.try_send(LedCommand::ClearFault);
-            hwlink::ack(out, seq).map(|r| r.len())
+            protocol::ack(out, seq).map(|r| r.len())
         }
-        Request::EnterBootloader => hwlink::ack(out, seq).map(|r| {
+        Request::EnterBootloader => protocol::ack(out, seq).map(|r| {
             action = Action::EnterBootloader;
             r.len()
         }),
-        Request::Reset => hwlink::ack(out, seq).map(|r| {
+        Request::Reset => protocol::ack(out, seq).map(|r| {
             action = Action::Reset;
             r.len()
         }),
         Request::SetBaud { rate } => {
             if rate == 115_200 || rate == 921_600 {
-                hwlink::ack(out, seq).map(|r| {
+                protocol::ack(out, seq).map(|r| {
                     action = Action::SetBaud(rate);
                     r.len()
                 })
@@ -292,7 +292,7 @@ fn handle_payload(
     status_rx: &mut StatusReceiver<'_>,
     info: &BootInfo,
 ) -> (Action, u8, usize) {
-    match hwlink::parse_request(payload) {
+    match protocol::parse_request(payload) {
         Ok(request) => reply(request, seq, out, status_rx, info),
         Err(ParseError::Unsupported) => (
             Action::None,
@@ -314,7 +314,8 @@ async fn send_event(
     payload: &mut [u8],
     event: ButtonEvent,
 ) {
-    let Some(p) = hwlink::button_event(payload, event.press, event.pattern, event.period_ms) else {
+    let Some(p) = protocol::button_event(payload, event.press, event.pattern, event.period_ms)
+    else {
         return;
     };
     let len = p.len();
@@ -349,8 +350,8 @@ async fn handle_frame(
     // A new host session starts at sequence 1; never answer its Hello from
     // the replay cache.
     if matches!(
-        hwlink::parse_request(f.payload),
-        Ok(hwlink::Request::Hello { .. })
+        protocol::parse_request(f.payload),
+        Ok(protocol::Request::Hello { .. })
     ) {
         last.len = 0;
     }
@@ -428,7 +429,7 @@ pub async fn task(uart: BufferedUart<'static>, info: BootInfo) {
         None => fault::fatal(),
     };
 
-    let mut report = crate::log::TaskReport::new(
+    let mut report = crate::system::log::TaskReport::new(
         4,
         "Comms",
         "serves HWLINK on USART3: info, identity, button and LED commands",

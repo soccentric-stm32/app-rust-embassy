@@ -9,9 +9,9 @@ use embassy_stm32::wdg::IndependentWatchdog;
 use embassy_time::{Duration, Instant, Ticker};
 
 use crate::board;
-use crate::boot;
-use crate::fault::{self, FaultRecord};
-use crate::ipc::{self, LedCommand};
+use crate::board::boot;
+use crate::board::fault::{self, FaultRecord};
+use crate::system::ipc::{self, LedCommand};
 
 const CHECKIN_TIMEOUT: u64 = 2000;
 const HEALTH_PASS_MS: u64 = 5000;
@@ -68,7 +68,7 @@ pub async fn task(
         0,
     );
 
-    let mut report = crate::log::TaskReport::new(
+    let mut report = crate::system::log::TaskReport::new(
         3,
         "Health",
         "watches task check-ins, kicks the watchdog, confirms the slot",

@@ -22,6 +22,20 @@ The NUCLEO-F767ZI demo application written in Rust on the Embassy async framewor
 - Produces a ready-to-flash bootloader image (`embassy-app.img`)
 - Reproducible Docker build environment with the pinned Rust toolchain
 
+## Layout
+
+| Path | Contents |
+|---|---|
+| `src/main.rs` | Entry point: clocks, caches, watchdog and task wiring |
+| `src/app/` | The four Embassy tasks: `health`, `comms`, `button` and `led` |
+| `src/board/` | MCU and board layer: constants, clock tree, bootloader hand-over, fault handler, factory identity |
+| `src/system/` | Runtime services: IPC channels, logging and build metadata |
+| `src/protocol/` | HWLINK codec: COBS framing, CRC-32 and the fixed-buffer FlatBuffers codec |
+| `protocol/` | Shared `hwlink.fbs` schema |
+| `linker/` | `memory.x` and `noinit.x` linker scripts |
+| `scripts/` | Host build, container, serial and image tools |
+| `ci/`, `docker/` | CI packaging and the reproducible build image |
+
 ## Build and run
 
 ```bash

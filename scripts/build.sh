@@ -40,4 +40,4 @@ export SOURCE_DATE_EPOCH="$STAMP"
     arm-none-eabi-objcopy -O binary build/embassy-app.elf build/embassy-app.bin
     arm-none-eabi-objcopy -O ihex   build/embassy-app.elf build/embassy-app.hex
     arm-none-eabi-size build/embassy-app.elf'
-"$DEV" run bash -c 'python3 tools/mkimage.py build/embassy-app.bin build/embassy-app.img --version "$1" --commit "$2" --timestamp "$3"' _ "$VERSION" "$COMMIT" "$STAMP"
+"$DEV" run bash -c 'python3 scripts/mkimage.py build/embassy-app.bin build/embassy-app.img --version "$1" --commit "$2" --timestamp "$3"' _ "$VERSION" "$COMMIT" "$STAMP"

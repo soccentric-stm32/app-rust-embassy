@@ -6,8 +6,8 @@
 use embassy_stm32::gpio::Output;
 use embassy_time::{Duration, Instant, Ticker};
 
-use crate::hwlink::{led, pattern};
-use crate::ipc::{self, ButtonEvent, LedCommand};
+use crate::protocol::{led, pattern};
+use crate::system::ipc::{self, ButtonEvent, LedCommand};
 
 const DEFAULT_PERIOD_MS: u16 = 1000;
 const TICK_MS: u64 = 1;
@@ -105,7 +105,7 @@ pub async fn task(
     );
 
     let mut ticker = Ticker::every(Duration::from_millis(TICK_MS));
-    let mut report = crate::log::TaskReport::new(
+    let mut report = crate::system::log::TaskReport::new(
         1,
         "LED",
         "drives LD1-LD3 patterns, LD3 shows health and fault state",
@@ -120,7 +120,7 @@ pub async fn task(
                     period_ms,
                     force,
                 } => match led {
-                    crate::hwlink::led::LD1 => {
+                    crate::protocol::led::LD1 => {
                         let now = Instant::now();
                         if p == pattern::CHASE {
                             pattern1 = p;
@@ -140,7 +140,7 @@ pub async fn task(
                             phase1 = now;
                         }
                     }
-                    crate::hwlink::led::LD2 => {
+                    crate::protocol::led::LD2 => {
                         let now = Instant::now();
                         if p == pattern::CHASE {
                             pattern1 = p;
@@ -160,7 +160,7 @@ pub async fn task(
                             phase2 = now;
                         }
                     }
-                    crate::hwlink::led::LD3 if force => {
+                    crate::protocol::led::LD3 if force => {
                         led3_forced = Some((p, period_ms));
                         led3_pattern = p;
                         led3_period = period_ms;

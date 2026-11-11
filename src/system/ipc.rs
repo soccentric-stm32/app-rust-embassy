@@ -31,16 +31,16 @@ pub struct StatusSnapshot {
 impl StatusSnapshot {
     pub const fn initial() -> Self {
         Self {
-            led1_pattern: crate::hwlink::pattern::HEARTBEAT,
+            led1_pattern: crate::protocol::pattern::HEARTBEAT,
             led1_period: 1000,
-            led2_pattern: crate::hwlink::pattern::OFF,
+            led2_pattern: crate::protocol::pattern::OFF,
             led2_period: 1000,
             health_state: crate::board::HEALTH_NOT_REQUIRED,
             fault_active: false,
             health_failed: false,
             task_checks: 0,
             stack_high_water: 0,
-            led3_pattern: crate::hwlink::pattern::OFF,
+            led3_pattern: crate::protocol::pattern::OFF,
             led3_period: 1000,
         }
     }

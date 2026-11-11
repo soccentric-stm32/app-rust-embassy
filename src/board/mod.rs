@@ -1,13 +1,18 @@
 #![allow(dead_code)]
-// board.rs - board, bootloader-contract and reset-cause constants
+// board/mod.rs - MCU and board layer: constants and the bootloader contract
 //
 // Author: Sandesh Ghimire <sandesh@soccentric.com>
 // SRS:    RBT-001..006, RFN-001..005, RSAFE-001..004
 
+pub mod boot;
+pub mod clock;
+pub mod fault;
+pub mod identity;
+
 pub const SLOT_BASE: u32 = 0x0800_C000;
 
 // A-9: reserved no-init window at the top of DTCM, shared with BOOT
-// (boot_layout.h BOOT_NOINIT_*).  memory.x and noinit.x place .noinit
+// (boot_layout.h BOOT_NOINIT_*).  linker/memory.x and linker/noinit.x place
 // here; the main stack starts below it.
 pub const NOINIT_ADDR: u32 = 0x2001_FC00;
 pub const NOINIT_SIZE: u32 = 0x0000_0400;
