@@ -2,7 +2,35 @@
 
 The NUCLEO-F767ZI demo application written in Rust on the Embassy async framework. It runs under the A/B bootloader from either slot and does exactly the same job as the C FreeRTOS demo: LED patterns, the user button, HWLINK communication with the desktop GUI, watchdog supervision and self-confirmation after a health check. It shows how a safe, allocation-free Rust application can live inside an existing C bootloader and toolchain ecosystem, and lets you compare Rust and C side by side on the same hardware.
 
-[![The Rust Embassy application starting on the board](https://raw.githubusercontent.com/soccentric-stm32/soccentric-stm32.github.io/main/assets/shots/term-rust-embassy.webp)](https://soccentric-stm32.github.io/#rust-embassy)
+## Debug terminal
+
+The debug log from a reset on a NUCLEO-F767ZI (USART6, 115200 8N1), recorded from the board. [Watch it replay line by line](https://soccentric-stm32.github.io/#rust-embassy) on the project page.
+
+```console
+$ make flash PORT=/dev/ttyACM0
+Activate: ok, device is resetting
+[      0] BOOT I start v0.1.0 d389f50d03e7, reset 0x14000000
+[      5] BOOT I init: clock 216 MHz, PLL locked
+[      9] BOOT I init: HWLINK on USART3, 115200 8N1
+[     14] BOOT I scan: searching for an application
+[    343] BOOT I init: flash dual bank, writes enabled
+[    348] BOOT I slot A: ok, confirmed
+[    352] BOOT I slot B: ok, pending
+[    355] BOOT I sel: slot B on trial, count 0
+[    359] BOOT I listen: 500 ms for a host
+[    863] BOOT I boot slot B, trial 1
+[      0] R-EMB I start v0.1.0 92dfc67ca3d8, slot B on trial, reset software
+[      0] R-EMB I task 4 Comms: serves HWLINK on USART3: info, identity, button and LED commands
+[      0] R-EMB I task 3 Health: watches task check-ins, kicks the watchdog, confirms the slot
+[      0] R-EMB I task 2 Button: debounces B1, short press cycles the LED pattern, long press resets it
+[      0] R-EMB I task 1 LED: drives LD1-LD3 patterns, LD3 shows health and fault state
+[ ... 16 lines omitted: the same task lines, once a second ... ]
+[   5000] R-EMB I health: passed, CONFIRMED written
+[   5000] R-EMB I task 4 Comms: serves HWLINK on USART3: info, identity, button and LED commands
+[   5001] R-EMB I task 1 LED: drives LD1-LD3 patterns, LD3 shows health and fault state
+[   5002] R-EMB I task 2 Button: debounces B1, short press cycles the LED pattern, long press resets it
+[   5200] R-EMB I task 3 Health: watches task check-ins, kicks the watchdog, confirms the slot
+```
 
 ## Features
 
