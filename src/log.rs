@@ -58,8 +58,22 @@ pub fn write(level: char, args: fmt::Arguments) {
     let bytes = &line.buf[..line.len + 2];
     // All writers run on the one executor thread, so nothing can fill the
     // pipe between the check and the write.
-    if PIPE.free_capacity() < bytes.len() || PIPE.try_write(bytes).is_err() {
+    if PIPE.free_capacity() < bytes.len() {
         DROPPED.fetch_add(1, Ordering::Relaxed);
+        return;
+    }
+    // try_write() stops at the end of the ring, so a line that straddles the
+    // wrap point needs a second call for its tail.  The capacity was checked
+    // above, so this always finishes.
+    let mut rest = bytes;
+    while !rest.is_empty() {
+        match PIPE.try_write(rest) {
+            Ok(n) => rest = &rest[n..],
+            Err(_) => {
+                DROPPED.fetch_add(1, Ordering::Relaxed);
+                break;
+            }
+        }
     }
 }
 
