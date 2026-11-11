@@ -68,7 +68,13 @@ pub async fn task(
         0,
     );
 
+    let mut report = crate::log::TaskReport::new(
+        3,
+        "Health",
+        "watches task check-ins, kicks the watchdog, confirms the slot",
+    );
     loop {
+        report.tick();
         // Health is a task too: its own check-in is the loop itself.
         ipc::check_in(ipc::TASK_HEALTH);
 

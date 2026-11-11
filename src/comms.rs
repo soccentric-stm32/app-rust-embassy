@@ -428,7 +428,13 @@ pub async fn task(uart: BufferedUart<'static>, info: BootInfo) {
         None => fault::fatal(),
     };
 
+    let mut report = crate::log::TaskReport::new(
+        4,
+        "Comms",
+        "serves HWLINK on USART3: info, identity, button and LED commands",
+    );
     loop {
+        report.tick();
         ipc::check_in(ipc::TASK_COMMS);
 
         let wait_ms = match revert_at {

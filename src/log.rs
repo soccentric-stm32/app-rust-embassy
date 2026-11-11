@@ -63,6 +63,42 @@ pub fn write(level: char, args: fmt::Arguments) {
     }
 }
 
+/// Once-a-second "task <n> <name>: <purpose>" line for one task.  Each task
+/// owns one and calls `tick()` once per loop iteration; it prints at most once
+/// a second however often the loop wakes.
+pub struct TaskReport {
+    number: u8,
+    name: &'static str,
+    purpose: &'static str,
+    last: Option<Instant>,
+}
+
+impl TaskReport {
+    pub const fn new(number: u8, name: &'static str, purpose: &'static str) -> Self {
+        Self {
+            number,
+            name,
+            purpose,
+            last: None,
+        }
+    }
+
+    pub fn tick(&mut self) {
+        let now = Instant::now();
+        let due = match self.last {
+            Some(last) => now.duration_since(last).as_millis() >= 1000,
+            None => true,
+        };
+        if due {
+            self.last = Some(now);
+            write(
+                'I',
+                format_args!("task {} {}: {}", self.number, self.name, self.purpose),
+            );
+        }
+    }
+}
+
 /// Lines dropped because the pipe was full (RDBG-003).
 #[allow(dead_code)]
 pub fn dropped() -> u32 {

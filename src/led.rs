@@ -105,7 +105,13 @@ pub async fn task(
     );
 
     let mut ticker = Ticker::every(Duration::from_millis(TICK_MS));
+    let mut report = crate::log::TaskReport::new(
+        1,
+        "LED",
+        "drives LD1-LD3 patterns, LD3 shows health and fault state",
+    );
     loop {
+        report.tick();
         while let Ok(command) = ipc::LED_COMMANDS.try_receive() {
             match command {
                 LedCommand::Set {

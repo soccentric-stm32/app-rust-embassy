@@ -29,8 +29,14 @@ pub async fn task(mut btn: ExtiInput<'static, Async>) {
     let mut press_start = Instant::now();
     let mut long_sent = false;
     let mut last_checkin = Instant::now();
+    let mut report = crate::log::TaskReport::new(
+        2,
+        "Button",
+        "debounces B1, short press cycles the LED pattern, long press resets it",
+    );
 
     loop {
+        report.tick();
         // EXTI wakes us on an edge; the timeout keeps the debounce loop and
         // the health check-in running while the button is held.
         let _ = select(btn.wait_for_any_edge(), Timer::after(POLL)).await;
