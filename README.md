@@ -6,6 +6,11 @@ The NUCLEO-F767ZI demo application written in Rust on the Embassy async framewor
 
 The debug log from a reset on a NUCLEO-F767ZI (USART6, 115200 8N1), recorded from the board. [Watch it replay line by line](https://soccentric-stm32.github.io/#rust-embassy) on the project page.
 
+![Debug terminal output from a reset on a NUCLEO-F767ZI](docs/debug-terminal.svg)
+
+<details>
+<summary>Plain text</summary>
+
 ```console
 $ make flash PORT=/dev/ttyACM0
 Activate: ok, device is resetting
@@ -31,6 +36,8 @@ Activate: ok, device is resetting
 [   5002] R-EMB I task 2 Button: debounces B1, short press cycles the LED pattern, long press resets it
 [   5200] R-EMB I task 3 Health: watches task check-ins, kicks the watchdog, confirms the slot
 ```
+
+</details>
 
 ## Features
 
